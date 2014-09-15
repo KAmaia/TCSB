@@ -28,22 +28,33 @@ namespace TheCollidersStrikeBack
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class TCSBController : MonoBehaviour
     {
-        bool currentVesselCollisionsEnabled = false;
+        int frameCount = 0;
+        Queue<Vessel> vesselsToUpdateNextFrame = new Queue<Vessel>();
 
         void Start()
         {
-            currentVesselCollisionsEnabled = false;
             Debug.Log("Starting TheCollisionsStrikeBack Controller");
-            GameEvents.onVesselCreate.Add(ReenableCollisions);
-            GameEvents.onNewVesselCreated.Add(ReenableCollisions);
-            GameEvents.onVesselGoOffRails.Add(ReenableCollisions);
-            GameEvents.onVesselWasModified.Add(ReenableCollisions);
+            GameEvents.onVesselCreate.Add(UpdateVesselNextFrame);
+            GameEvents.onNewVesselCreated.Add(UpdateVesselNextFrame);
+            GameEvents.onVesselGoOffRails.Add(UpdateVesselNextFrame);
+            GameEvents.onVesselWasModified.Add(UpdateVesselNextFrame);
+            UpdateVesselNextFrame(FlightGlobals.ActiveVessel);
         }
 
         void FixedUpdate()
         {
-            if (FlightGlobals.ready && !currentVesselCollisionsEnabled)
-                ReenableCollisions(FlightGlobals.ActiveVessel);
+            if (FlightGlobals.ready)
+                if (frameCount > 0)
+                    frameCount--;
+                else
+                    while (vesselsToUpdateNextFrame.Count > 0)
+                        ReenableCollisions(vesselsToUpdateNextFrame.Dequeue());
+        }
+        
+        void UpdateVesselNextFrame(Vessel v)
+        {
+            vesselsToUpdateNextFrame.Enqueue(v);
+            frameCount = 2;
         }
 
         void ReenableCollisions(Vessel v)
@@ -94,10 +105,10 @@ namespace TheCollidersStrikeBack
 
         void OnDestroy()
         {
-            GameEvents.onVesselCreate.Remove(ReenableCollisions);
-            GameEvents.onNewVesselCreated.Remove(ReenableCollisions);
-            GameEvents.onVesselGoOffRails.Remove(ReenableCollisions);
-            GameEvents.onVesselWasModified.Remove(ReenableCollisions);
+            GameEvents.onVesselCreate.Remove(UpdateVesselNextFrame);
+            GameEvents.onNewVesselCreated.Remove(UpdateVesselNextFrame);
+            GameEvents.onVesselGoOffRails.Remove(UpdateVesselNextFrame);
+            GameEvents.onVesselWasModified.Remove(UpdateVesselNextFrame);
         }
     }
 }
