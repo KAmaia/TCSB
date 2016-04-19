@@ -23,92 +23,129 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace TheCollidersStrikeBack
-{
-    [KSPAddon(KSPAddon.Startup.Flight, false)]
-    public class TCSBController : MonoBehaviour
-    {
-        int frameCount = 0;
-        Queue<Vessel> vesselsToUpdateNextFrame = new Queue<Vessel>();
+namespace TheCollidersStrikeBack {
+	[KSPAddon ( KSPAddon.Startup.Flight, false )]
+	public class TCSBController : MonoBehaviour {
+		int frameCount = 0;
+		Queue<Vessel> vesselsToUpdateNextFrame = new Queue<Vessel> ( );
 
-        void Start()
-        {
-            Debug.Log("Starting TheCollisionsStrikeBack Controller");
-            GameEvents.onVesselCreate.Add(UpdateVesselNextFrame);
-            GameEvents.onNewVesselCreated.Add(UpdateVesselNextFrame);
-            GameEvents.onVesselGoOffRails.Add(UpdateVesselNextFrame);
-            GameEvents.onVesselWasModified.Add(UpdateVesselNextFrame);
-            UpdateVesselNextFrame(FlightGlobals.ActiveVessel);
-        }
+		List<Tuple<Part, Collider[]>> partsAndColliders = new List<Tuple<Part, Collider[]>> ( );
 
-        void FixedUpdate()
-        {
-            if (FlightGlobals.ready)
-                if (frameCount > 0)
-                    frameCount--;
-                else
-                    while (vesselsToUpdateNextFrame.Count > 0)
-                        ReenableCollisions(vesselsToUpdateNextFrame.Dequeue());
-        }
-        
-        void UpdateVesselNextFrame(Vessel v)
-        {
-            vesselsToUpdateNextFrame.Enqueue(v);
-            frameCount = 2;
-        }
+		void Start ( ) {
+			Debug.Log ( "Starting TheCollisionsStrikeBack Controller" );
+			GameEvents.onVesselCreate.Add ( UpdateVesselNextFrame );
+			GameEvents.onVesselCreate.Add ( EnumeratePartsAndColliders );
+			GameEvents.onNewVesselCreated.Add ( UpdateVesselNextFrame );
+			GameEvents.onNewVesselCreated.Add ( EnumeratePartsAndColliders );
+			GameEvents.onVesselGoOffRails.Add ( UpdateVesselNextFrame );
+			GameEvents.onVesselGoOffRails.Add ( EnumeratePartsAndColliders );
+			GameEvents.onVesselWasModified.Add ( UpdateVesselNextFrame );
+			GameEvents.onVesselWasModified.Add ( EnumeratePartsAndColliders );
+			UpdateVesselNextFrame ( FlightGlobals.ActiveVessel );
+		}
 
-        void ReenableCollisions(Vessel v)
-        {
-            List<Collider[]> colliderArrays = new List<Collider[]>();
-            for(int i = 0; i < v.Parts.Count; i++)
-            {
-                Part p = v.Parts[i];
+		void FixedUpdate ( ) {
+			if ( FlightGlobals.ready ) {
+				if ( frameCount > 0 ) {
+					frameCount--;
+				}
+				else {
+					//while ( vesselsToUpdateNextFrame.Count > 0 ) {
+					//ReenableCollisions ( vesselsToUpdateNextFrame.Dequeue ( ) );
+					ReenableCollisions ( );
+					//}
+				}
+			}
+		}
+		//so we're only doing this once.
+		void EnumeratePartsAndColliders ( Vessel v ) {
+			//first clear the list, just to be sure.
+			partsAndColliders.Clear ( );
+			foreach ( Part p in v.parts ) {
+				try {
+					partsAndColliders.Add ( new Tuple<Part, Collider[]> ( p, p.GetComponentsInChildren<Collider> ( ) ) );
+				}
+				catch ( Exception ex ) {
+					//fail silently for pwings;
+					Collider[] pwingCollider = new Collider[1]{ p.collider };
+					partsAndColliders.Add ( new Tuple<Part, Collider[]> ( p, pwingCollider ) );
+				}
+			}
+		}
 
-                Collider[] colliders;
-                try
-                {
-                    colliders = p.GetComponentsInChildren<Collider>();
-                }
-                catch (Exception e)
-                {
-                    //Fail silently because it's the only way to avoid issues with pWings
-                    //Debug.LogException(e);
-                    colliders = new Collider[1] { p.collider };
-                }
-                colliderArrays.Add(colliders);
-                Debug.Log("Part: " + p.partInfo.title + " Collider Count: " + colliders.Length);
-            }
-            for(int i = 0; i < colliderArrays.Count; i++)
-            {
-                Collider[] currentColliderArray = colliderArrays[i];
-                for(int j = 0; j < colliderArrays.Count; j++)
-                {
-                    if (i == j)
-                        continue;
+		void UpdateVesselNextFrame ( Vessel v ) {
+			vesselsToUpdateNextFrame.Enqueue ( v );
+			frameCount = 2;
+		}
 
-                    Collider[] secondColliderArray = colliderArrays[j];
+		void ReenableCollisions ( ) {
+			for ( int i = 0; i < partsAndColliders.Count; i++ ) {
+				Part currentPart = partsAndColliders [ i ].First;
+				for ( int j = 0; j < partsAndColliders.Count; j++ ) {
+					Part secondPart = partsAndColliders [ j ].First;
+					if ( i == j ) {
+						continue;
+					}
+					if ( currentPart.parent == secondPart || secondPart.parent == currentPart ) {
+						continue;
+					}
+					EnableColliders ( partsAndColliders [ i ].Second, partsAndColliders [ j ].Second );
+				}
+			}
+		}
 
-                    EnableColliders(currentColliderArray, secondColliderArray);
-                }
-            }
-        }
+	
+		//		void ReenableCollisions ( Vessel v ) {
+		//			List<Tuple<Part, Collider[]>> partsAndColliders = new List<Tuple<Part, Collider[]>> ( );
+		//			for ( int i = 0; i < v.Parts.Count; i++ ) {
+		//				//get the current part
+		//				Part p = v.Parts [ i ];
+		//				Collider[] colliders;
+		//				try {
+		//					colliders = p.GetComponentsInChildren<Collider> ( );
+		//				}
+		//				catch ( Exception e ) {
+		//					//Fail silently because it's the only way to avoid issues with pWings
+		//					//Debug.LogException(e);
+		//					colliders = new Collider[1] { p.collider };
+		//				}
+		//				partsAndColliders.Add ( new Tuple<Part, Collider[]> ( p, colliders ) );
 
-        //Make sure that all colliders in array1 can collide with all colliders in array2
-        void EnableColliders(Collider[] array1, Collider[] array2)
-        {
-            for(int i = 0; i < array1.Length; i++)
-                for (int j = 0; j < array2.Length; j++)
-                {
-                    Physics.IgnoreCollision(array1[i], array2[j], false);
-                }
-        }
+		//				Debug.Log ( "Part: " + p.partInfo.title + " Collider Count: " + colliders.Length );
+		//			}
+		//			for ( int i = 0; i < partsAndColliders.Count; i++ ) {
+		//				Part currentPart = partsAndColliders [ i ].First;
+		//				Collider[] currentColliderArray = partsAndColliders [ i ].Second;
+		//				for ( int j = 0; j < partsAndColliders.Count; j++ ) {
+		//					Part secondPart = partsAndColliders [ j ].First;
+		//					if ( i == j )
+		//						continue;
+		//					if ( currentPart.parent == secondPart || secondPart.parent == currentPart ) {
+		//						continue;
+		//					}
+		//					Collider[] secondColliderArray = partsAndColliders [ j ].Second;
+		//
+		//					EnableColliders ( currentColliderArray, secondColliderArray );
+		//				}
+		//			}
+		//
+		//		}
 
-        void OnDestroy()
-        {
-            GameEvents.onVesselCreate.Remove(UpdateVesselNextFrame);
-            GameEvents.onNewVesselCreated.Remove(UpdateVesselNextFrame);
-            GameEvents.onVesselGoOffRails.Remove(UpdateVesselNextFrame);
-            GameEvents.onVesselWasModified.Remove(UpdateVesselNextFrame);
-        }
-    }
+		//Make sure that all colliders in array1 can collide with all colliders in array2
+		void EnableColliders ( Collider[] array1, Collider[] array2 ) {
+			for ( int i = 0; i < array1.Length; i++ ) {
+				for ( int j = 0; j < array2.Length; j++ ) {
+					Physics.IgnoreCollision ( array1 [ i ], array2 [ j ], false );
+				}
+			}
+		}
+
+
+		void OnDestroy ( ) {
+			GameEvents.onVesselCreate.Remove ( UpdateVesselNextFrame );
+			GameEvents.onNewVesselCreated.Remove ( UpdateVesselNextFrame );
+			GameEvents.onVesselGoOffRails.Remove ( UpdateVesselNextFrame );
+			GameEvents.onVesselWasModified.Remove ( UpdateVesselNextFrame );
+		}
+	}
 }
