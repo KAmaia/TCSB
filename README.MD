@@ -2,9 +2,10 @@ The Colliders Strike Back
 ------------------
 A collision and physics toy plugin for Kerbal Space Program
 
-Source available at https://github.com/ferram4/TCSB
 
-MIT License, copyright 2014 Michael Ferrara  
+Source available at https://github.com/kamaia/TCSB
+
+MIT License, copyright 2014 Michael Ferrara  & Amaia Industries
 You should have received a full copy of the MIT license with your download
 
 ------------------
@@ -15,9 +16,10 @@ Merge the GameData folder in the zip file with the GameData folder in your KSP r
 ------------------
 ##What it does:
 
-This disables an optimization / improvement made early in KSP's history that disabled all intra-vessel part collisions.  
-Parts will not collide with themselves (to avoid issues with landing gear or cargo bays that are dependent on this functioning well), but will collide with other parts on the vessel.  
-This can be used for experiments into the nature of collisions, avoid issues with payloads clipping through payload fairings / cargo bays, and general mayhem.
+This Reenables Collisions between parts on a vessel that do not share a joint.  Many thanks go out to Ferram4 for creating the original version of this mod at https://github.com/ferram4/TCSB 
+
+As it currently stands, this mod works, but checks enumerates the parts list each frame, which is expensive, and causes performance to drop.
+
 
 ###Warning:
 

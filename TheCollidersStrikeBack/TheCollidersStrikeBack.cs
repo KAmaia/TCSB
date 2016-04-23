@@ -41,6 +41,9 @@ namespace TheCollidersStrikeBack {
 			GameEvents.onVesselGoOffRails.Add ( EnumeratePartsAndColliders );
 			GameEvents.onVesselWasModified.Add ( UpdateVesselNextFrame );
 			GameEvents.onVesselWasModified.Add ( EnumeratePartsAndColliders );
+
+			GameEvents.onCollision.Add ( TestCollisionManager );
+
 			UpdateVesselNextFrame ( FlightGlobals.ActiveVessel );
 		}
 
@@ -77,6 +80,14 @@ namespace TheCollidersStrikeBack {
 			vesselsToUpdateNextFrame.Enqueue ( v );
 			frameCount = 2;
 		}
+
+		void TestCollisionManager ( EventReport report ) {
+			print ( "========TCSB TESTING!========" );
+			print ( report.sender );
+			print ( "||||||||TCSB TESTING!||||||||" );
+
+		}
+
 
 		void ReenableCollisions ( ) {
 			for ( int i = 0; i < partsAndColliders.Count; i++ ) {
