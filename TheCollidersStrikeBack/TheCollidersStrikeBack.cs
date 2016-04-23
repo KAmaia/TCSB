@@ -94,7 +94,8 @@ namespace TheCollidersStrikeBack {
 			}
 		}
 
-	
+	 
+		// Ferram's Original Method.
 		//		void ReenableCollisions ( Vessel v ) {
 		//			List<Tuple<Part, Collider[]>> partsAndColliders = new List<Tuple<Part, Collider[]>> ( );
 		//			for ( int i = 0; i < v.Parts.Count; i++ ) {
@@ -146,6 +147,10 @@ namespace TheCollidersStrikeBack {
 			GameEvents.onNewVesselCreated.Remove ( UpdateVesselNextFrame );
 			GameEvents.onVesselGoOffRails.Remove ( UpdateVesselNextFrame );
 			GameEvents.onVesselWasModified.Remove ( UpdateVesselNextFrame );
+			GameEvents.onVesselWasModified.Remove ( EnumeratePartsAndColliders );
+			GameEvents.onVesselGoOffRails.Remove ( EnumeratePartsAndColliders );
+			GameEvents.onVesselCreate.Remove ( EnumeratePartsAndColliders );
+			GameEvents.onNewVesselCreated.Remove ( EnumeratePartsAndColliders );
 		}
 	}
 }
